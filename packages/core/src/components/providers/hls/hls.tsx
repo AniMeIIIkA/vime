@@ -10,6 +10,8 @@ import { canPlayHLSNatively } from '../../../utils/support';
 import { hlsRegex, hlsTypeRegex } from '../file/utils';
 import { MediaType } from '../../core/player/MediaType';
 import { createProviderDispatcher, ProviderDispatcher } from '../ProviderDispatcher';
+import { PlayerProps } from '../../core/player/PlayerProps';
+import { withPlayerContext } from '../../core/player/PlayerContext';
 
 /**
  * @slot - Pass `<source>` and  `<track>` elements to the underlying HTML5 media player.
@@ -82,7 +84,18 @@ export class HLS implements MediaFileProvider {
   /**
    * @internal
    */
+  @Prop() i18n: PlayerProps['i18n'] = {};
+
+  /**
+   * @internal
+   */
   @Event() vLoadStart!: EventEmitter<void>;
+
+  constructor() {
+    withPlayerContext(this, [
+      'i18n',
+    ]);
+  }
 
   connectedCallback() {
     this.dispatch = createProviderDispatcher(this);
@@ -138,9 +151,24 @@ export class HLS implements MediaFileProvider {
         this.dispatch('errors', [{ e, data }]);
       });
 
-      this.hls!.on(Hls.Events.MANIFEST_PARSED, () => {
+      this.hls!.on(Hls.Events.MANIFEST_PARSED, (_: any, data: any) => {
+        const qualities = [this.i18n.auto];
+        if (data.levels) {
+          qualities.push(
+            ...data.levels
+              .map((x: any) => ({
+                width: x.width,
+                height: x.height,
+                bitrate: x.bitrate / 1000
+              }))
+              .sort((a: any, b: any) => b.width - a.width)
+              .map((x: any) => `${x.height}p, ${Math.round(x.bitrate)}kbps`)
+          );
+        }
+
         this.dispatch('mediaType', MediaType.Video);
         this.dispatch('currentSrc', this.src);
+        this.dispatch('playbackQualities', qualities);
         this.dispatch('playbackReady', true);
       });
 
@@ -182,6 +210,24 @@ export class HLS implements MediaFileProvider {
     const canVideoProviderPlay = adapter.canPlay;
     return {
       ...adapter,
+      canSetPlaybackQuality: async () => true,
+      setPlaybackQuality: async (selectedLevelLabel: string) => {
+        let selectedLevel = -1;
+        const levels = this.hls.levels;
+        for (let i = 0; i < levels.length; i++) {
+          const level = levels[i];
+          const levelLabel = `${level.height}p, ${Math.round(level.bitrate / 1000)}kbps`;
+          if (levelLabel != selectedLevelLabel) {
+            continue;
+          }
+          selectedLevel = i;
+          break;
+        }
+
+        this.hls.loadLevel = selectedLevel;
+        this.hls.currentLevel = selectedLevel;
+        this.onSrcChange();
+      },
       getInternalPlayer: async () => this.hls,
       canPlay: async (type: any) => (isString(type) && hlsRegex.test(type))
         || canVideoProviderPlay(type),

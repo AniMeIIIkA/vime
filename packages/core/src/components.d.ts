@@ -555,7 +555,8 @@ export namespace Components {
           * @inheritdoc
          */
         "disableRemotePlayback"?: boolean;
-        "getAdapter": () => Promise<{ getInternalPlayer: () => Promise<any>; canPlay: (type: any) => Promise<boolean>; play: () => Promise<void | undefined>; pause: () => Promise<void | undefined>; setCurrentTime: (time: number) => Promise<void>; setMuted: (muted: boolean) => Promise<void>; setVolume: (volume: number) => Promise<void>; canSetPlaybackRate: () => Promise<boolean>; setPlaybackRate: (rate: number) => Promise<void>; canSetPiP: () => Promise<boolean>; enterPiP: () => Promise<any>; exitPiP: () => Promise<any>; canSetFullscreen: () => Promise<boolean>; enterFullscreen: () => Promise<any>; exitFullscreen: () => Promise<any>; }>;
+        "getAdapter": () => Promise<{ canSetPlaybackQuality: () => Promise<boolean>; setPlaybackQuality: (selectedLevelLabel: string) => Promise<void>; getInternalPlayer: () => Promise<any>; canPlay: (type: any) => Promise<boolean>; play: () => Promise<void | undefined>; pause: () => Promise<void | undefined>; setCurrentTime: (time: number) => Promise<void>; setMuted: (muted: boolean) => Promise<void>; setVolume: (volume: number) => Promise<void>; canSetPlaybackRate: () => Promise<boolean>; setPlaybackRate: (rate: number) => Promise<void>; canSetPiP: () => Promise<boolean>; enterPiP: () => Promise<any>; exitPiP: () => Promise<any>; canSetFullscreen: () => Promise<boolean>; enterFullscreen: () => Promise<any>; exitFullscreen: () => Promise<any>; }>;
+        "i18n": PlayerProps['i18n'];
         /**
           * The title of the current media.
          */
@@ -2333,6 +2334,7 @@ declare namespace LocalJSX {
           * @inheritdoc
          */
         "disableRemotePlayback"?: boolean;
+        "i18n"?: PlayerProps['i18n'];
         /**
           * The title of the current media.
          */

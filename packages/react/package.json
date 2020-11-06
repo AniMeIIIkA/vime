@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@seznam/compose-react-refs": "^1.0.4",
-    "@vime/core": "^4.3.2"
+    "@vime/core": "file:../core"
   },
   "devDependencies": {
     "@types/react": "^16.9.9",

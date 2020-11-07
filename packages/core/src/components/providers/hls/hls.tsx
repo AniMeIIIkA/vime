@@ -152,29 +152,47 @@ export class HLS implements MediaFileProvider {
       });
 
       this.hls!.on(Hls.Events.MANIFEST_PARSED, (_: any, data: any) => {
-        const qualities = [this.i18n.auto];
+        let qualities = [];
         if (data.levels) {
-          qualities.push(
-            ...data.levels
-              .map((x: any) => ({
-                width: x.width,
-                height: x.height,
-                bitrate: x.bitrate / 1000
-              }))
-              .sort((a: any, b: any) => b.width - a.width)
-              .map((x: any) => `${x.height}p, ${Math.round(x.bitrate)}kbps`)
-          );
+          qualities = data.levels
+            .filter((x: any) => x.width != null && x.height != null)
+            .map((x: any) => ({
+              width: x.width,
+              height: x.height,
+              bitrate: x.bitrate / 1000
+            }))
+            .sort((a: any, b: any) => this.sortHlsLevels(a, b))
+            .map((x: any) => `${x.height}p, ${Math.round(x.bitrate)}kbps`);
         }
 
         this.dispatch('mediaType', MediaType.Video);
         this.dispatch('currentSrc', this.src);
-        this.dispatch('playbackQualities', qualities);
+        this.dispatch('playbackQualities', qualities.length == 1
+          ? []
+          : [this.i18n.auto, ...qualities]);
         this.dispatch('playbackReady', true);
       });
 
       this.hls!.attachMedia(this.mediaEl);
     } catch (e) {
       this.dispatch('errors', [e]);
+    }
+  }
+
+  private sortHlsLevels(a: any, b: any) {
+    if (a.width < b.width) {
+      return 1;
+    } else if (a.width > b.width) {
+      return -1;
+    }
+
+    // Else go to the 2nd item
+    if (a.bitrate > b.bitrate) {
+      return -1;
+    } else if (a.bitrate < b.bitrate) {
+      return 1
+    } else { // nothing to split them
+      return 0;
     }
   }
 
@@ -210,7 +228,13 @@ export class HLS implements MediaFileProvider {
     const canVideoProviderPlay = adapter.canPlay;
     return {
       ...adapter,
-      canSetPlaybackQuality: async () => true,
+      canSetPlaybackQuality: async () => {
+        if (this.hls.levels == null)
+          return false;
+
+        const levels = this.hls.levels.filter((x: any) => x.width != null && x.height != null);
+        return levels.length > 1;
+      },
       setPlaybackQuality: async (selectedLevelLabel: string) => {
         let selectedLevel = -1;
         const levels = this.hls.levels;
